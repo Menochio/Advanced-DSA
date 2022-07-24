@@ -12,7 +12,7 @@ class SGTree
     {
         seg.resize(4 * n + 1);
     }
-    int queries(vector<int> &seg, int ind, int low, int high, int l, int r)
+    int queries( int ind, int low, int high, int l, int r)
     {
         if (high < l || r < low)
             return INT_MAX;
@@ -21,8 +21,8 @@ class SGTree
             return seg[ind];
 
         int mid = (low + high) / 2;
-        int left = queries(seg, 2 * ind + 1, low, mid, l, r);
-        int right = queries(seg, 2 * ind + 2, mid + 1, high, l, r);
+        int left = queries( 2 * ind + 1, low, mid, l, r);
+        int right = queries( 2 * ind + 2, mid + 1, high, l, r);
         return min(left, right);
     }
 
