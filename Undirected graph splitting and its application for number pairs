@@ -1,0 +1,238 @@
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+class Graph {
+private:
+	int V; // No. of vertices
+	vector<vector<int> > edges; // edges grouped by nodes
+	bool isCyclicUtil(int v, vector<bool>& visited, int parent);
+	vector<bool> cyclic;
+	vector<int> maxInNonCyclicFragments;
+	int findMax(int v);
+	vector<bool> visitedNonCyclic;
+	void setPropagateCycle(int v);
+
+public:
+	Graph(int V); // Constructor
+	void addEdge(int v, int w); // to add an edge to graph
+
+	// returns true if there is a cycle and
+	// also designates all connected to a cycle
+	bool isCyclic();
+	int getSize() const { return V; }
+	int GetAnswer();
+};
+
+Graph::Graph(int V)
+{
+	this->V = V;
+	edges = vector<vector<int> >(V, vector<int>());
+	visitedNonCyclic = cyclic = vector<bool>(V, false);
+}
+
+void Graph::addEdge(int v, int w)
+{
+	edges[v].push_back(w);
+	edges[w].push_back(v);
+}
+
+void Graph::setPropagateCycle(int v)
+{
+	if (cyclic[v])
+		return;
+	cyclic[v] = true;
+	for (auto i = edges[v].begin(); i != edges[v].end(); ++i) {
+		setPropagateCycle(*i);
+	}
+}
+
+bool Graph::isCyclicUtil(int v, vector<bool>& visited, int parent)
+{
+	if (cyclic[v])
+		return true;
+
+	// Mark the current node as visited
+	visited[v] = true;
+
+	// Recur for all the vertices edgesacent to this vertex
+	vector<int>::iterator i;
+	for (i = edges[v].begin(); i != edges[v].end(); ++i) {
+
+		// If an edgesacent is not visited, then
+		// recur for that edgesacent
+		if (!visited[*i]) {
+			if (isCyclicUtil(*i, visited, v)) {
+				setPropagateCycle(v);
+				return true;
+			}
+		}
+
+		// If an edgesacent is visited and not parent
+		// of current vertex, then there is a cycle.
+		else if (*i != parent) {
+			setPropagateCycle(v);
+			return true;
+		}
+		if (cyclic[*i]) {
+			setPropagateCycle(v);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Graph::isCyclic()
+{
+	// Mark all the vortices as not visited
+	// and not part of recursion stack
+	vector<bool> visited(V, false);
+
+	// Call the recursive helper function
+	// to detect cycle in different DFS trees
+	bool res = false;
+	for (int u = 0; u < V; u++)
+
+		// Don't recur for u if it is already visited{
+		if (!visited[u] && !cyclic[u]) {
+			if (isCyclicUtil(u, visited, -1)) {
+				res = true;
+
+				// there was return true originally
+				visited = vector<bool>(V, false);
+			}
+		}
+	return res;
+}
+
+int Graph::findMax(int v)
+{
+	if (cyclic[v])
+		return -1;
+	if (visitedNonCyclic.at(v))
+		return -1;
+	int res = v;
+	visitedNonCyclic.at(v) = true;
+	for (auto& u2 : edges.at(v)) {
+		res = max(res, findMax(u2));
+	}
+	return res;
+}
+
+int Graph::GetAnswer()
+{
+	// cannot be less than, after extract must add 1
+	int res = V;
+
+	for (int u = 0; u < V; u++) {
+		maxInNonCyclicFragments.push_back(findMax(u));
+	}
+	for (auto& u : maxInNonCyclicFragments) {
+		if (u >= 0)
+			res = min(res, u);
+	}
+	return res;
+}
+
+int solution(vector<int>& A, vector<int>& B)
+{
+	const int N = (int)A.size();
+
+	const int MAX_AMOUNT = 100001;
+	vector<bool> present(MAX_AMOUNT, false);
+
+	for (auto& au : A) {
+		if (au <= N) {
+			present.at(au) = true;
+		}
+	}
+	for (auto& au : B) {
+		if (au <= N) {
+			present.at(au) = true;
+		}
+	}
+	int MAX_POSSIBLE = N;
+	for (int i = 1; i <= N; i++) {
+		if (false == present.at(i)) {
+			MAX_POSSIBLE = i - 1;
+			break;
+		}
+	}
+
+	Graph graph(MAX_POSSIBLE);
+
+	for (int i = 0; i < N; i++) {
+		if (A.at(i) > MAX_POSSIBLE && B.at(i) > MAX_POSSIBLE) {
+			continue;
+		}
+		int mi = min(A.at(i), B.at(i));
+		int ma = max(A.at(i), B.at(i));
+		if (A.at(i) > MAX_POSSIBLE || B.at(i) > MAX_POSSIBLE) {
+			graph.addEdge(mi - 1, mi - 1);
+		}
+		else {
+			graph.addEdge(mi - 1, ma - 1);
+		}
+	}
+	graph.isCyclic();
+	int res = 1 + graph.GetAnswer();
+	return res;
+}
+// Test and driver
+#include <iostream>
+void test(vector<int>& A, vector<int>& B, int expected,
+								bool printAll = false)
+{
+	int res = solution(A, B);
+	if (expected != res || printAll) {
+		for (size_t i = 0; i < A.size(); i++) {
+			cout << A.at(i) << " ";
+		}
+		cout << endl;
+		for (size_t i = 0; i < B.size(); i++) {
+			cout << B.at(i) << " ";
+		}
+		cout << endl;
+		if (expected != res)
+			cout << "Error! Expected: " << expected << " ";
+		else
+			cout << "Expected: " << expected << " ";
+	}
+	cout << " Result: " << res << endl;
+}
+int main()
+{
+	vector<int> VA;
+	vector<int> VB;
+
+	int A4[] = { 1, 1, 1, 1, 1 };
+	int B4[] = { 2, 3, 4, 5, 6 };
+	VA = vector<int>(A4, A4 + 1);
+	VB = vector<int>(B4, B4 + 1);
+	test(VA, VB, 2, true);
+
+	int A0[] = { 1, 1 };
+	int B0[] = { 2, 2 };
+	VA = vector<int>(A0, A0 + 2);
+	VB = vector<int>(B0, B0 + 2);
+	test(VA, VB, 3);
+
+	int A[] = { 1, 2, 4, 3 };
+	int B[] = { 1, 3, 2, 3 };
+	VA = vector<int>(A, A + 4);
+	VB = vector<int>(B, B + 4);
+	test(VA, VB, 5);
+
+	int A2[] = { 4, 2, 1, 6, 5 };
+	int B2[] = { 3, 2, 1, 7, 7 };
+	VA = vector<int>(A2, A2 + 5);
+	VB = vector<int>(B2, B2 + 5);
+	test(VA, VB, 4);
+
+	int A3[] = { 2, 3 };
+	int B3[] = { 2, 3 };
+	VA = vector<int>(A3, A3 + 2);
+	VB = vector<int>(B3, B3 + 2);
+	test(VA, VB, 1);
+	return 0;
+}
